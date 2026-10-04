@@ -1,0 +1,69 @@
+{
+  "expo": {
+    "name": "Sellix POS",
+    "slug": "frontend",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "frontend",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.meolabs.mypos",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Pindai barcode produk untuk kasir cepat",
+        "NSPhotoLibraryUsageDescription": "Pilih logo toko dari galeri"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#205396"
+      },
+      "package": "com.meolabs.mypos",
+      "permissions": [
+        "android.permission.CAMERA"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-image.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF"
+        }
+      ],
+      "expo-font",
+      "expo-image",
+      "expo-secure-store",
+      "expo-web-browser",
+      "expo-status-bar",
+      "expo-sqlite",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Pindai barcode produk untuk kasir cepat"
+        }
+      ],
+      "@react-native-vector-icons/material-design-icons",
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pilih logo toko dari galeri"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
