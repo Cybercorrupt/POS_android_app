@@ -80,7 +80,9 @@ export default function Receipt() {
         {d && s ? (
           <View style={styles.paper} ref={paperRef} collapsable={false} testID="receipt-paper">
             <View pointerEvents="none" style={styles.watermark}>
-              <Text style={[styles.watermarkText, { color: statusHex }]}>{statusLabel}</Text>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <Text key={i} style={[styles.watermarkText, { color: statusHex }]}>{statusLabel}</Text>
+              ))}
             </View>
 
             <View style={styles.brandHeader}>
@@ -211,8 +213,8 @@ const useStyles = makeStyles((colors) => ({
   successBadge: { alignItems: "center", gap: spacing.sm },
   successText: { fontSize: 18, fontWeight: "800", color: colors.onSurface },
   paper: { backgroundColor: colors.surfaceSecondary, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, overflow: "hidden" },
-  watermark: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center" },
-  watermarkText: { fontSize: 46, fontWeight: "900", opacity: 0.12, letterSpacing: 2, textAlign: "center", transform: [{ rotate: "-20deg" }] },
+  watermark: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", transform: [{ rotate: "-20deg" }] },
+  watermarkText: { fontSize: 34, fontWeight: "900", opacity: 0.1, letterSpacing: 3, textAlign: "center", marginVertical: spacing.md },
   brandHeader: { alignItems: "center", gap: 2, paddingBottom: spacing.md },
   logo: { width: "55%", height: 70, alignSelf: "center", marginBottom: spacing.xs },
   logoFallback: { width: 52, height: 52, borderRadius: radius.md, backgroundColor: colors.brandTertiary, alignItems: "center", justifyContent: "center", marginBottom: spacing.xs },
@@ -306,11 +308,12 @@ function buildReceiptHtml(d: SaleWithDetails, s: Settings): string {
     .grand .g-l { font-size: 13px; font-weight: 800; letter-spacing: .5px; }
     .grand .g-v { font-size: 17px; font-weight: 900; }
     .dashed { border-top: 1px dashed #bbb; margin: 8px 0; }
-    .wm { position: absolute; top: 42%; left: 0; right: 0; text-align: center; transform: rotate(-18deg); opacity: 0.1; font-size: 52px; font-weight: 900; color: ${statusColor}; z-index: 0; }
+    .wm-wrap { position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; transform: rotate(-18deg); opacity: 0.1; z-index: 0; }
+    .wm { font-size: 40px; font-weight: 900; color: ${statusColor}; white-space: nowrap; }
     .foot { text-align: center; font-size: 11px; color: #555; margin-top: 8px; }
     .legal { text-align: center; font-size: 9px; color: #999; font-style: italic; margin-top: 4px; }
   </style></head><body>
-    <div class="wm">${statusLabel}</div>
+    <div class="wm-wrap">${Array(6).fill(`<div class="wm">${statusLabel}</div>`).join("")}</div>
     ${s.store_logo ? `<img src="${s.store_logo}" style="max-width:120px;max-height:70px;display:block;margin:0 auto 6px;" />` : ""}
     <div class="center store">${escapeHtml(s.store_name || "Toko")}</div>
     ${s.store_address ? `<div class="center muted">${escapeHtml(s.store_address)}</div>` : ""}

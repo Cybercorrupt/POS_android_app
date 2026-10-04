@@ -59,7 +59,7 @@ export function DonutChart({
     <View style={styles.wrap} testID={testID}>
       <View style={{ width: size, height: size }}>
         <Svg width={size} height={size}>
-          <G rotation={-90} originX={cx} originY={cy}>
+          <G transform={`rotate(-90 ${cx} ${cy})`}>
             <Circle cx={cx} cy={cy} r={r} stroke={colors.surfaceTertiary} strokeWidth={strokeWidth} fill="none" />
             {total > 0
               ? segments.map((s) => (
