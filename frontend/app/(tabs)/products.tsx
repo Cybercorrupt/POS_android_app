@@ -47,7 +47,7 @@ export default function Products() {
         <View style={styles.flex}>
           <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
           <Text style={styles.meta} numberOfLines={1}>
-            {item.sku}{item.category_name ? ` • ${item.category_name}` : ""}
+            {item.sku}{item.brand ? ` • ${item.brand}` : ""}{item.category_name ? ` • ${item.category_name}` : ""}
           </Text>
           <Text style={styles.price}>{formatCurrency(item.sell_price)}</Text>
         </View>

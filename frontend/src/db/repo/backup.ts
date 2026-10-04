@@ -8,6 +8,7 @@ const TABLES = [
   "users",
   "categories",
   "units",
+  "brands",
   "products",
   "stock",
   "customers",

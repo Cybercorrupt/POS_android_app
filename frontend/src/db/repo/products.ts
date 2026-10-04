@@ -60,6 +60,7 @@ export interface ProductInput {
   barcode: string | null;
   category_id: string | null;
   unit: string;
+  brand: string | null;
   cost_price: number;
   sell_price: number;
   min_stock: number;
@@ -75,8 +76,8 @@ export async function createProduct(input: ProductInput, userId: string): Promis
 
   await db.withTransactionAsync(async () => {
     await db.runAsync(
-      `INSERT INTO products (id, name, sku, barcode, category_id, unit, cost_price, sell_price, min_stock, active, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO products (id, name, sku, barcode, category_id, unit, brand, cost_price, sell_price, min_stock, active, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         input.name.trim(),
@@ -84,6 +85,7 @@ export async function createProduct(input: ProductInput, userId: string): Promis
         input.barcode?.trim() || null,
         input.category_id,
         input.unit.trim() || "pcs",
+        input.brand?.trim() || null,
         input.cost_price,
         input.sell_price,
         input.min_stock,
@@ -113,7 +115,7 @@ export async function updateProduct(id: string, input: ProductInput): Promise<vo
   const db = getDb();
   const now = nowIso();
   await db.runAsync(
-    `UPDATE products SET name = ?, sku = ?, barcode = ?, category_id = ?, unit = ?, cost_price = ?, sell_price = ?, min_stock = ?, active = ?, updated_at = ?
+    `UPDATE products SET name = ?, sku = ?, barcode = ?, category_id = ?, unit = ?, brand = ?, cost_price = ?, sell_price = ?, min_stock = ?, active = ?, updated_at = ?
      WHERE id = ?`,
     [
       input.name.trim(),
@@ -121,6 +123,7 @@ export async function updateProduct(id: string, input: ProductInput): Promise<vo
       input.barcode?.trim() || null,
       input.category_id,
       input.unit.trim() || "pcs",
+      input.brand?.trim() || null,
       input.cost_price,
       input.sell_price,
       input.min_stock,

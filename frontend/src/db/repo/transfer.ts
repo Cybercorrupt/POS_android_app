@@ -119,8 +119,8 @@ export async function exportSalesCsv(): Promise<string> {
 // ---------- Import: Products & Stock ----------
 
 export const PRODUCTS_CSV_TEMPLATE =
-  "nama,sku,barcode,kategori,unit,harga_modal,harga_jual,stok_minimal,stok\n" +
-  "Contoh Produk,SKU001,8991234567890,Minuman,pcs,5000,8000,5,100\n";
+  "nama,sku,barcode,kategori,merek,unit,harga_modal,harga_jual,stok_minimal,stok\n" +
+  "Contoh Produk,SKU001,8991234567890,Minuman,Indomie,pcs,5000,8000,5,100\n";
 
 export interface ImportResult {
   created: number;
@@ -176,6 +176,7 @@ export async function importProductsCsv(csv: string, userId: string): Promise<Im
   const cBarcode = col(["barcode"]);
   const cCat = col(["kategori", "category"]);
   const cUnit = col(["unit", "satuan"]);
+  const cBrand = col(["merek", "brand"]);
   const cCost = col(["harga_modal", "modal", "cost", "hpp"]);
   const cSell = col(["harga_jual", "jual", "harga", "price", "sell"]);
   const cMin = col(["stok_minimal", "min_stok", "minimum", "min_stock"]);
@@ -205,6 +206,7 @@ export async function importProductsCsv(csv: string, userId: string): Promise<Im
       const sku = cSku >= 0 ? (row[cSku] ?? "").trim() : "";
       const barcode = cBarcode >= 0 ? (row[cBarcode] ?? "").trim() || null : null;
       const unit = cUnit >= 0 ? (row[cUnit] ?? "").trim() || "pcs" : "pcs";
+      const brand = cBrand >= 0 ? (row[cBrand] ?? "").trim() || null : null;
       const cost = cCost >= 0 ? toInt(row[cCost]) : 0;
       const sell = cSell >= 0 ? toInt(row[cSell]) : 0;
       const minStock = cMin >= 0 ? toInt(row[cMin]) : 0;
@@ -231,18 +233,18 @@ export async function importProductsCsv(csv: string, userId: string): Promise<Im
 
       if (existing) {
         await db.runAsync(
-          `UPDATE products SET name = ?, sku = ?, barcode = ?, category_id = ?, unit = ?, cost_price = ?, sell_price = ?, min_stock = ?, active = 1, updated_at = ?
+          `UPDATE products SET name = ?, sku = ?, barcode = ?, category_id = ?, unit = ?, brand = ?, cost_price = ?, sell_price = ?, min_stock = ?, active = 1, updated_at = ?
            WHERE id = ?`,
-          [name, sku || `P${existing.id.slice(0, 6)}`, barcode, categoryId, unit, cost, sell, minStock, now, existing.id],
+          [name, sku || `P${existing.id.slice(0, 6)}`, barcode, categoryId, unit, brand, cost, sell, minStock, now, existing.id],
         );
         if (cStock >= 0) await setStock(db, existing.id, stockQty, userId, now);
         result.updated++;
       } else {
         const id = uuid();
         await db.runAsync(
-          `INSERT INTO products (id, name, sku, barcode, category_id, unit, cost_price, sell_price, min_stock, active, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
-          [id, name, sku || `P${id.slice(0, 6)}`, barcode, categoryId, unit, cost, sell, minStock, now, now],
+          `INSERT INTO products (id, name, sku, barcode, category_id, unit, brand, cost_price, sell_price, min_stock, active, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+          [id, name, sku || `P${id.slice(0, 6)}`, barcode, categoryId, unit, brand, cost, sell, minStock, now, now],
         );
         await db.runAsync("INSERT INTO stock (id, product_id, quantity, updated_at) VALUES (?, ?, ?, ?)", [uuid(), id, cStock >= 0 ? stockQty : 0, now]);
         if (cStock >= 0 && stockQty > 0) {

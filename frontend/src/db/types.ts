@@ -37,6 +37,7 @@ export interface Product {
   category_id: string | null;
   category_name: string | null;
   unit: string;
+  brand: string | null;
   cost_price: number;
   sell_price: number;
   min_stock: number;
@@ -62,6 +63,13 @@ export type PaymentMethod = "cash" | "transfer" | "qris" | "debit" | "ewallet";
 export type PaymentStatus = "lunas" | "belum_lunas";
 
 export interface Unit {
+  id: string;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Brand {
   id: string;
   name: string;
   created_at: string;

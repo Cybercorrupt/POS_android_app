@@ -58,4 +58,12 @@ export async function seedDatabase(db: SqlDB): Promise<void> {
       await db.runAsync("INSERT INTO units (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)", [uuid(), name, now, now]);
     }
   }
+
+  // Starter brands (merek)
+  const brandCount = await db.getFirstAsync<{ c: number }>("SELECT COUNT(*) AS c FROM brands");
+  if (!brandCount || brandCount.c === 0) {
+    for (const name of ["Umum", "Indofood", "Unilever", "Nestlé"]) {
+      await db.runAsync("INSERT INTO brands (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)", [uuid(), name, now, now]);
+    }
+  }
 }

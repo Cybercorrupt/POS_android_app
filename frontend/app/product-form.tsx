@@ -16,6 +16,7 @@ import { qk } from "@/src/db/keys";
 import { createCategory, listCategories } from "@/src/db/repo/categories";
 import { createProduct, getProduct, softDeleteProduct, updateProduct, type ProductInput } from "@/src/db/repo/products";
 import { listUnits } from "@/src/db/repo/units";
+import { listBrands } from "@/src/db/repo/brands";
 import { parseNumber } from "@/src/lib/format";
 import { scanBus } from "@/src/lib/scan-bus";
 import { makeStyles, radius, spacing, useTheme } from "@/src/theme";
@@ -37,6 +38,7 @@ export default function ProductForm() {
   const [barcode, setBarcode] = useState("");
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [unit, setUnit] = useState("pcs");
+  const [brand, setBrand] = useState<string | null>(null);
   const [cost, setCost] = useState(0);
   const [sell, setSell] = useState(0);
   const [minStock, setMinStock] = useState(0);
@@ -45,11 +47,13 @@ export default function ProductForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [catSheet, setCatSheet] = useState(false);
   const [unitSheet, setUnitSheet] = useState(false);
+  const [brandSheet, setBrandSheet] = useState(false);
   const [newCat, setNewCat] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const categories = useQuery({ queryKey: qk.categories, queryFn: listCategories });
   const units = useQuery({ queryKey: qk.units, queryFn: listUnits });
+  const brands = useQuery({ queryKey: qk.brands, queryFn: listBrands });
   const existing = useQuery({ queryKey: qk.product(id ?? ""), queryFn: () => getProduct(id!), enabled: isEdit });
 
   useEffect(() => {
@@ -60,6 +64,7 @@ export default function ProductForm() {
       setBarcode(p.barcode ?? "");
       setCategoryId(p.category_id);
       setUnit(p.unit);
+      setBrand(p.brand ?? null);
       setCost(p.cost_price);
       setSell(p.sell_price);
       setMinStock(p.min_stock);
@@ -93,6 +98,7 @@ export default function ProductForm() {
         barcode: barcode || null,
         category_id: categoryId,
         unit,
+        brand,
         cost_price: cost,
         sell_price: sell,
         min_stock: minStock,
@@ -198,6 +204,14 @@ export default function ProductForm() {
           </Pressable>
         </View>
 
+        <View>
+          <Text style={styles.label}>Merek</Text>
+          <Pressable testID="pf-brand" onPress={() => setBrandSheet(true)} style={styles.selector}>
+            <Text style={[styles.selectorText, !brand && styles.placeholder]}>{brand ?? "Pilih merek (opsional)"}</Text>
+            <Icon name="chevron-right" size={20} color={colors.muted} />
+          </Pressable>
+        </View>
+
         <View style={styles.row}>
           <View style={styles.flex}>
             <Input label="Harga Beli" testID="pf-cost" keyboardType="number-pad" value={cost ? String(cost) : ""} onChangeText={(t) => setCost(parseNumber(t))} placeholder="0" />
@@ -263,7 +277,21 @@ export default function ProductForm() {
             {unit === u.name ? <Icon name="check-circle" size={20} color={colors.success} /> : null}
           </Pressable>
         ))}
-        <Text style={styles.unitHint}>Kelola daftar unit di Pengaturan.</Text>
+        <Text style={styles.unitHint}>Kelola daftar unit di menu Lainnya → Satuan Unit.</Text>
+      </Sheet>
+
+      <Sheet visible={brandSheet} onClose={() => setBrandSheet(false)} title="Pilih Merek" scroll>
+        <Pressable testID="brand-pick-none" onPress={() => { setBrand(null); setBrandSheet(false); }} style={styles.catRow}>
+          <Text style={[styles.catName, styles.placeholder]}>Tanpa Merek</Text>
+          {brand === null ? <Icon name="check-circle" size={20} color={colors.success} /> : null}
+        </Pressable>
+        {(brands.data ?? []).map((b) => (
+          <Pressable key={b.id} testID={`brand-pick-${b.name}`} onPress={() => { setBrand(b.name); setBrandSheet(false); }} style={styles.catRow}>
+            <Text style={styles.catName}>{b.name}</Text>
+            {brand === b.name ? <Icon name="check-circle" size={20} color={colors.success} /> : null}
+          </Pressable>
+        ))}
+        <Text style={styles.unitHint}>Kelola daftar merek di menu Lainnya → Merek.</Text>
       </Sheet>
 
       <ConfirmSheet

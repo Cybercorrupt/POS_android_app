@@ -21,6 +21,7 @@ export default function More() {
     { label: "Laporan Penjualan", icon: "chart-box-outline", route: "/daily-report", show: isAdmin, desc: "Harian, mingguan, bulanan & tahunan" },
     { label: "Pengguna", icon: "shield-account-outline", route: "/users", show: isAdmin, desc: "Kelola user & admin" },
     { label: "Satuan Unit", icon: "ruler", route: "/units", show: isAdmin, desc: "Kelola satuan produk" },
+    { label: "Merek", icon: "tag-outline", route: "/brands", show: isAdmin, desc: "Kelola merek produk" },
     { label: "Backup Data", icon: "database-arrow-down-outline", route: "/backup", show: isAdmin, desc: "Backup, ekspor penjualan & impor produk" },
     { label: "Pengaturan", icon: "cog-outline", route: "/settings", show: true, desc: "Toko, struk & aplikasi" },
   ];

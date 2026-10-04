@@ -38,6 +38,14 @@ CREATE TABLE IF NOT EXISTS units (
   deleted_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS brands (
+  id TEXT PRIMARY KEY NOT NULL,
+  name TEXT NOT NULL UNIQUE,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  deleted_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS products (
   id TEXT PRIMARY KEY NOT NULL,
   name TEXT NOT NULL,
@@ -45,6 +53,7 @@ CREATE TABLE IF NOT EXISTS products (
   barcode TEXT,
   category_id TEXT,
   unit TEXT NOT NULL DEFAULT 'pcs',
+  brand TEXT,
   cost_price INTEGER NOT NULL DEFAULT 0,
   sell_price INTEGER NOT NULL DEFAULT 0,
   min_stock INTEGER NOT NULL DEFAULT 0,

@@ -22,4 +22,5 @@ export async function runMigrations(db: SqlDB): Promise<void> {
   await addColumn("payments", "status", "status TEXT NOT NULL DEFAULT 'lunas'");
   await addColumn("payments", "note", "note TEXT");
   await addColumn("settings", "store_logo", "store_logo TEXT NOT NULL DEFAULT ''");
+  await addColumn("products", "brand", "brand TEXT");
 }

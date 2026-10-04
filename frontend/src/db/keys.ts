@@ -16,5 +16,6 @@ export const qk = {
   salesSeries: ["salesSeries"] as const,
   settings: ["settings"] as const,
   units: ["units"] as const,
+  brands: ["brands"] as const,
   users: ["users"] as const,
 };
