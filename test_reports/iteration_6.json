@@ -1,0 +1,33 @@
+{
+  "summary": "Pelunasan Hutang (installment payments) flow verified end-to-end in Expo web preview. Login (admin/admin123) OK, product created, POS checkout with status 'Belum Lunas' (DP Rp3.000 of Rp10.000) creates a sale with Sisa Rp7.000. Transaction detail shows 'Catat Pembayaran' (record-payment) and Sisa Tagihan. Recording a PARTIAL Rp2.000 keeps status Belum Lunas, drops Sisa to Rp5.000 and appends Rp2.000 to Riwayat Pembayaran. A follow-up OVERPAY of Rp999.999 is clamped to the Rp5.000 outstanding, flips the sale to LUNAS, hides the record-payment button, and the Riwayat Transaksi list badge shows 'Lunas'. All 8 expected behaviours pass. One non-fatal LogBox red screen appears from DonutChart emitting an invalid DOM prop 'transform-origin' (should be transformOrigin) on the Dashboard chart — overlay can be dismissed but is a real React warning and should be fixed by main agent.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "DonutChart (dashboard)",
+        "issue": "Invalid DOM property `transform-origin` is logged as a React error and triggers the Expo LogBox red screen overlay on the web preview when the Dashboard is rendered. Non-fatal (chart still renders) but blocks UI interactions near the overlay until dismissed. Reference: src/components/charts/donut-chart.tsx:62 (<G ... origin={...}>). Fix by using `originX`/`originY` numeric props from react-native-svg instead of a composite `origin` string, or converting the prop so react-native-web emits `transformOrigin` camelCase.",
+        "testID": "dashboard-donut-chart",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/test_reports/iteration_6.json"],
+  "action_items": [
+    "Fix DonutChart invalid DOM prop at src/components/charts/donut-chart.tsx:62 — avoid passing an `origin` string to <G>; use `originX`/`originY` numeric props so react-native-web does not emit the deprecated 'transform-origin' DOM attribute."
+  ],
+  "critical_code_review_comments": [
+    "recordPayment correctly clamps overpayment (applied = min(pay, outstandingBefore)) and flips status to lunas when newPaid >= grand_total — behavior confirmed in UI.",
+    "transaction-detail.tsx hides 'Catat Pembayaran' once payment_status === 'lunas' and when isVoid — confirmed in UI.",
+    "getSaleDetails returns payments[] used by the Riwayat Pembayaran card — rendered correctly with 3 rows after the flow."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "n/a (frontend-only test)", "frontend": "100% (8/8 flow steps)" },
+  "seed_data_creation": "In-session SQLite seed: 1 product 'Kopi Test' SKU-TEST-001 (sell Rp10.000, stock 100), 1 customer-less sale INV-20261004-0001 DP Rp3.000, two follow-up payments (Rp2.000 then Rp5.000-clamped-from-Rp999.999). sql.js memory resets on reload.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "This is a web-preview Expo app with sql.js in-memory DB that resets on every page reload — do the full product→sale→payments flow in ONE session without reloading. Avoid navigating via the Dashboard tab in automation because the DonutChart currently triggers an Expo LogBox red screen overlay (invalid DOM prop); go via the 'Lainnya' tab → 'Riwayat Transaksi' (testID more-Riwayat Transaksi) to reach the transactions list reliably. Receipt screen is outside the tab bar, use page.go_back() to return to POS before switching tabs. All relevant testIDs: login-username, login-password, login-submit, dashboard-screen, quick-Produk, pf-name/sku/cost/sell/initstock/save, pos-screen, pos-search, pos-add-<sku>, pos-checkout, pay-status-belum, pay-amount, pay-confirm, more-Riwayat Transaksi, transactions-screen, transaction-row-<invoice>, transaction-detail-screen, record-payment, pay-amount-input, pay-full, pay-method-cash|transfer|qris|debit, pay-confirm.",
+  "rca_of_issue": "LogBox 'transform-origin' error: react-native-svg's <G origin='cx cy'> on web is being forwarded by react-native-web as a kebab-case 'transform-origin' DOM attribute which React rejects. Mitigation: switch to `originX={cx} originY={cy}` numeric props (or set transformOrigin via style)."
+}

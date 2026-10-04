@@ -150,4 +150,5 @@ export interface SaleWithDetails {
   sale: Sale;
   items: SaleItem[];
   payment: Payment | null;
+  payments: Payment[];
 }

@@ -8,12 +8,13 @@ import { Badge } from "@/src/components/ui/badge";
 import { Card } from "@/src/components/ui/card";
 import { ConfirmSheet } from "@/src/components/ui/confirm-sheet";
 import { Icon } from "@/src/components/ui/icon";
+import { Input } from "@/src/components/ui/input";
 import { Screen } from "@/src/components/ui/screen";
 import { Sheet } from "@/src/components/ui/sheet";
 import { useToast } from "@/src/components/ui/toast";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { qk } from "@/src/db/keys";
-import { getSaleDetails, settleSale, voidSale } from "@/src/db/repo/sales";
+import { getSaleDetails, recordPayment, voidSale } from "@/src/db/repo/sales";
 import type { PaymentMethod } from "@/src/db/types";
 import { formatCurrency, formatDateTime } from "@/src/lib/format";
 import { PAYMENT_METHODS, paymentMethodLabel, paymentStatusLabel } from "@/src/lib/payment";
@@ -33,8 +34,9 @@ export default function TransactionDetail() {
   const isVoid = d?.sale.status === "void";
   const outstanding = d ? d.sale.grand_total - d.sale.paid_amount : 0;
   const [voidSheet, setVoidSheet] = useState(false);
-  const [settleSheet, setSettleSheet] = useState(false);
-  const [settleMethod, setSettleMethod] = useState<PaymentMethod>("cash");
+  const [paySheet, setPaySheet] = useState(false);
+  const [payMethod, setPayMethod] = useState<PaymentMethod>("cash");
+  const [payAmount, setPayAmount] = useState("");
 
   const voidMut = useMutation({
     mutationFn: () => voidSale(id, user!.id),
@@ -46,15 +48,25 @@ export default function TransactionDetail() {
     onError: (e) => toast.show(e instanceof Error ? e.message : "Gagal membatalkan transaksi", "error"),
   });
 
-  const settleMut = useMutation({
-    mutationFn: () => settleSale(id, settleMethod),
-    onSuccess: () => {
+  const payMut = useMutation({
+    mutationFn: () => recordPayment(id, Number((payAmount || "0").replace(/\D/g, "")), payMethod),
+    onSuccess: (res) => {
       queryClient.invalidateQueries();
-      toast.show("Transaksi ditandai LUNAS", "success");
-      setSettleSheet(false);
+      toast.show(
+        res.lunas ? "Pembayaran lunas! Transaksi LUNAS" : `Pembayaran dicatat. Sisa ${formatCurrency(res.outstanding)}`,
+        "success",
+      );
+      setPaySheet(false);
     },
-    onError: (e) => toast.show(e instanceof Error ? e.message : "Gagal menandai lunas", "error"),
+    onError: (e) => toast.show(e instanceof Error ? e.message : "Gagal mencatat pembayaran", "error"),
   });
+
+  function openPaySheet() {
+    if (!d) return;
+    setPayMethod(d.sale.payment_method);
+    setPayAmount(String(outstanding));
+    setPaySheet(true);
+  }
 
   return (
     <Screen
@@ -123,18 +135,35 @@ export default function TransactionDetail() {
             {d.sale.payment_status === "belum_lunas" ? (
               <Info label="Sisa Tagihan" value={formatCurrency(d.sale.grand_total - d.sale.paid_amount)} />
             ) : null}
-            {isAdmin && !isVoid && d.sale.payment_status === "belum_lunas" ? (
+            {!isVoid && d.sale.payment_status === "belum_lunas" ? (
               <Button
-                title="Tandai Lunas"
-                icon="cash-check"
-                onPress={() => {
-                  setSettleMethod(d.sale.payment_method);
-                  setSettleSheet(true);
-                }}
-                testID="settle-transaction"
+                title="Catat Pembayaran"
+                icon="cash-plus"
+                onPress={openPaySheet}
+                testID="record-payment"
               />
             ) : null}
           </Card>
+
+          {d.payments.length > 0 ? (
+            <>
+              <Text style={styles.section}>Riwayat Pembayaran</Text>
+              <Card style={styles.card}>
+                {d.payments.map((p) => (
+                  <View key={p.id} style={styles.payRow}>
+                    <View style={styles.payIcon}>
+                      <Icon name={PAYMENT_METHODS.find((m) => m.value === p.method)?.icon ?? "cash"} size={16} color={colors.brandPrimary} />
+                    </View>
+                    <View style={styles.flex}>
+                      <Text style={styles.payMethod}>{paymentMethodLabel(p.method)}</Text>
+                      <Text style={styles.payDate}>{formatDateTime(p.created_at)}</Text>
+                    </View>
+                    <Text style={styles.payAmount}>{formatCurrency(p.paid_amount)}</Text>
+                  </View>
+                ))}
+              </Card>
+            </>
+          ) : null}
         </>
       ) : null}
 
@@ -149,20 +178,32 @@ export default function TransactionDetail() {
         onClose={() => !voidMut.isPending && setVoidSheet(false)}
       />
 
-      <Sheet visible={settleSheet} onClose={() => !settleMut.isPending && setSettleSheet(false)} title="Tandai Lunas" scroll>
+      <Sheet visible={paySheet} onClose={() => !payMut.isPending && setPaySheet(false)} title="Catat Pembayaran" scroll>
         <Card style={styles.settleTotal}>
           <Text style={styles.settleLabel}>Sisa Tagihan</Text>
           <Text style={styles.settleValue}>{formatCurrency(outstanding)}</Text>
         </Card>
-        <Text style={styles.settleHint}>Metode pembayaran pelunasan:</Text>
+        <Input
+          label="Nominal Pembayaran"
+          keyboardType="number-pad"
+          value={payAmount ? formatCurrency(Number(payAmount.replace(/\D/g, ""))) : ""}
+          onChangeText={(t) => setPayAmount(t.replace(/\D/g, ""))}
+          placeholder="Masukkan nominal"
+          testID="pay-amount-input"
+        />
+        <Pressable testID="pay-full" onPress={() => setPayAmount(String(outstanding))} style={styles.fullBtn}>
+          <Icon name="cash-check" size={16} color={colors.brandPrimary} />
+          <Text style={styles.fullText}>Bayar Penuh ({formatCurrency(outstanding)})</Text>
+        </Pressable>
+        <Text style={styles.settleHint}>Metode pembayaran:</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.methodRow}>
           {PAYMENT_METHODS.map((m) => {
-            const active = settleMethod === m.value;
+            const active = payMethod === m.value;
             return (
               <Pressable
                 key={m.value}
-                testID={`settle-method-${m.value}`}
-                onPress={() => setSettleMethod(m.value)}
+                testID={`pay-method-${m.value}`}
+                onPress={() => setPayMethod(m.value)}
                 style={[styles.methodChip, active && styles.methodActive]}
               >
                 <Icon name={m.icon} size={18} color={active ? colors.onBrandPrimary : colors.onSurface} />
@@ -172,11 +213,11 @@ export default function TransactionDetail() {
           })}
         </ScrollView>
         <Button
-          title="Konfirmasi Lunas"
-          icon="check-circle"
-          onPress={() => settleMut.mutate()}
-          loading={settleMut.isPending}
-          testID="settle-confirm"
+          title="Simpan Pembayaran"
+          icon="content-save"
+          onPress={() => payMut.mutate()}
+          loading={payMut.isPending}
+          testID="pay-confirm"
         />
       </Sheet>
     </Screen>
@@ -213,6 +254,13 @@ const useStyles = makeStyles((colors) => ({
   settleLabel: { fontSize: 13, color: colors.onBrandTertiary, fontWeight: "600" },
   settleValue: { fontSize: 26, fontWeight: "800", color: colors.onBrandTertiary },
   settleHint: { fontSize: 14, fontWeight: "700", color: colors.onSurface, marginTop: spacing.sm },
+  fullBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: spacing.sm, borderRadius: radius.md, backgroundColor: colors.brandTertiary },
+  fullText: { fontSize: 13, fontWeight: "700", color: colors.brandPrimary },
+  payRow: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  payIcon: { width: 32, height: 32, borderRadius: radius.sm, backgroundColor: colors.brandTertiary, alignItems: "center", justifyContent: "center" },
+  payMethod: { fontSize: 14, fontWeight: "700", color: colors.onSurface },
+  payDate: { fontSize: 12, color: colors.muted, marginTop: 2 },
+  payAmount: { fontSize: 14, fontWeight: "800", color: colors.brandPrimary },
   methodRow: { gap: spacing.sm, paddingVertical: 2 },
   methodChip: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.full, backgroundColor: colors.surfaceTertiary, borderWidth: 1, borderColor: colors.border, flexShrink: 0 },
   methodActive: { backgroundColor: colors.brandPrimary, borderColor: colors.brandPrimary },

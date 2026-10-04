@@ -200,8 +200,11 @@ export async function getSaleDetails(id: string): Promise<SaleWithDetails | null
     "SELECT * FROM sale_items WHERE sale_id = ? ORDER BY created_at ASC",
     [id],
   );
-  const payment = await db.getFirstAsync<Payment>("SELECT * FROM payments WHERE sale_id = ? LIMIT 1", [id]);
-  return { sale, items, payment: payment ?? null };
+  const payments = await db.getAllAsync<Payment>(
+    "SELECT * FROM payments WHERE sale_id = ? ORDER BY created_at ASC",
+    [id],
+  );
+  return { sale, items, payment: payments[0] ?? null, payments };
 }
 
 /**
@@ -282,4 +285,60 @@ export async function settleSale(saleId: string, method?: PaymentMethod): Promis
       );
     }
   });
+}
+
+/**
+ * Record a partial (installment) payment against an outstanding (belum_lunas)
+ * sale. Adds the amount to the sale's paid_amount, inserts a payment history
+ * row, and automatically flips the sale to 'lunas' once the running paid amount
+ * reaches the grand total. Any amount over the outstanding balance is clamped.
+ * Returns whether the sale is now fully paid and the remaining balance.
+ */
+export async function recordPayment(
+  saleId: string,
+  amount: number,
+  method: PaymentMethod,
+): Promise<{ lunas: boolean; outstanding: number; applied: number }> {
+  const db = getDb();
+  let result = { lunas: false, outstanding: 0, applied: 0 };
+  await db.withTransactionAsync(async () => {
+    const sale = await db.getFirstAsync<{
+      status: string;
+      payment_status: string;
+      grand_total: number;
+      paid_amount: number;
+    }>(
+      "SELECT status, payment_status, grand_total, paid_amount FROM sales WHERE id = ?",
+      [saleId],
+    );
+    if (!sale) throw new Error("Transaksi tidak ditemukan");
+    if (sale.status === "void") throw new Error("Transaksi sudah dibatalkan");
+    if (sale.payment_status === "lunas") throw new Error("Transaksi sudah lunas");
+
+    const outstandingBefore = sale.grand_total - sale.paid_amount;
+    if (outstandingBefore <= 0) throw new Error("Tidak ada sisa tagihan");
+
+    const pay = Math.floor(amount);
+    if (!Number.isFinite(pay) || pay <= 0) throw new Error("Nominal pembayaran tidak valid");
+
+    const applied = Math.min(pay, outstandingBefore);
+    const newPaid = sale.paid_amount + applied;
+    const becomesLunas = newPaid >= sale.grand_total;
+    const newStatus: PaymentStatus = becomesLunas ? "lunas" : "belum_lunas";
+    const now = nowIso();
+
+    await db.runAsync(
+      `INSERT INTO payments (id, sale_id, method, amount, paid_amount, change_amount, status, note, created_at)
+       VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)`,
+      [uuid(), saleId, method, applied, applied, newStatus, "Pembayaran angsuran", now],
+    );
+
+    await db.runAsync(
+      "UPDATE sales SET paid_amount = ?, payment_status = ?, payment_method = ?, change_amount = 0, updated_at = ? WHERE id = ?",
+      [newPaid, newStatus, method, now, saleId],
+    );
+
+    result = { lunas: becomesLunas, outstanding: sale.grand_total - newPaid, applied };
+  });
+  return result;
 }

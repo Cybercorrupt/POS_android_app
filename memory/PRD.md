@@ -82,3 +82,11 @@ Offline reliability, DB integrity (atomic sales), POS stability, role-based acce
 
 ## Next Tasks
 - (Optional polish) swap web-deprecated `shadow*`/`pointerEvents` props for `boxShadow`/`style.pointerEvents` in UI components (web console warnings only; native unaffected).
+
+## Feature Log
+- **2026-10-04 — Pelunasan Hutang (installment payments)**: Imported project from GitHub repo `Cybercorrupt/POS_android_app` into workspace, then added installment payments.
+  - `src/db/repo/sales.ts`: new `recordPayment(saleId, amount, method)` — inserts a payment-history row, increments `sales.paid_amount`, flips `payment_status` to `lunas` once paid_amount >= grand_total, clamps overpay to outstanding, blocks on void/already-lunas. `getSaleDetails` now returns `payments[]` array (+ `payment` first row kept for receipt).
+  - `src/db/types.ts`: `SaleWithDetails.payments: Payment[]` added.
+  - `app/transaction-detail.tsx`: replaced admin-only "Tandai Lunas" full-settle with "Catat Pembayaran" (testID record-payment) available to ALL roles (cashier + admin). New pay sheet: nominal input (pay-amount-input, rupiah-formatted), "Bayar Penuh" quick-fill (pay-full), method chips (pay-method-*), confirm (pay-confirm). Added "Riwayat Pembayaran" history card listing each installment.
+  - Fixed unrelated DonutChart web warning: `<G origin="x, y">` → `originX`/`originY` numeric props (removed LogBox overlay).
+  - Verified by testing agent (iteration_6): 8/8 PASS — partial payment reduces Sisa & stays Belum Lunas, history rows appear, second/overpay payment flips to Lunas and hides the button, overpay clamped correctly.
