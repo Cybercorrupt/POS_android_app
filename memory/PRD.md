@@ -84,6 +84,7 @@ Offline reliability, DB integrity (atomic sales), POS stability, role-based acce
 - (Optional polish) swap web-deprecated `shadow*`/`pointerEvents` props for `boxShadow`/`style.pointerEvents` in UI components (web console warnings only; native unaffected).
 
 ## Feature Log
+- **2026-10-04 — Filter Transaksi (riwayat)**: `app/transactions.tsx` — added two horizontal quick-filter chip rows below the search bar (chrome, flexShrink:0, 36pt chips). Row 1 status: Semua / Lunas / Belum Lunas / Dibatalkan (testID filter-status-*). Row 2 method: Semua Metode + each PAYMENT_METHODS (testID filter-method-*). Filtering is client-side via useMemo over the existing listSales result (text search still server-side). Subtitle count + empty-state reflect the filtered result. Selected chip changes color/border only.
 - **2026-10-04 — Pelunasan Hutang (installment payments)**: Imported project from GitHub repo `Cybercorrupt/POS_android_app` into workspace, then added installment payments.
   - `src/db/repo/sales.ts`: new `recordPayment(saleId, amount, method)` — inserts a payment-history row, increments `sales.paid_amount`, flips `payment_status` to `lunas` once paid_amount >= grand_total, clamps overpay to outstanding, blocks on void/already-lunas. `getSaleDetails` now returns `payments[]` array (+ `payment` first row kept for receipt).
   - `src/db/types.ts`: `SaleWithDetails.payments: Payment[]` added.
